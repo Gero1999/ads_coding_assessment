@@ -17,7 +17,7 @@ p1 <- ggplot2::ggplot(
     adae,
     aes(x = ACTARM, fill = AESEV)
     ) +
-    geom_bar(position = "dodge") +
+    geom_bar() +
     labs(
         title = "AE severity distribution by treatment",
         x = "Treatment Arm",
@@ -58,7 +58,7 @@ p2 <- adae |>
     slice_head(n = 10) |>
     ggplot(aes(x = pct, y = reorder(AETERM, pct))) +
     geom_point(size = 3) +
-    geom_errorbarh(
+    geom_errorbar(
         aes(xmin = ci_lower, xmax = ci_upper),
         height = 0.2
     ) +
