@@ -6,6 +6,16 @@ Create outputs for adverse events summary using the ADAE dataset and `{gtsummary
 
 **Input datasets:** `pharmaverseadam::adae` and `pharmaverseadam::adsl`
 
+## Summary of Content
+
+### 1) Task
+
+Produce two TLG outputs from ADAE/ADSL data: (1) a TEAE summary table by treatment arm with counts and percentages, and (2) visualizations for severity distribution and top 10 adverse events with confidence intervals.
+
+### 2) Implementation Description
+
+The implementation is split into `01_create_ae_summary_table.R` and `02_create_visualizations.R`. The first script filters TEAEs (`TRTEMFL == "Y"`) and builds a hierarchical summary table by treatment using `{gtsummary}` and `{gt}`. The second script creates two `{ggplot2}` PNG outputs: severity by treatment and top 10 AEs with 95% confidence intervals.
+
 ## Tasks
 
 ### 1. Summary Table using `{gtsummary}` *(Hint — FDA Table 10)*
