@@ -93,11 +93,15 @@ final_table_data <- table_wide %>%
   mutate(AETERM = as.character(AETERM))
 
 # Use gtsummary to create a QC/traceability table from TEAE records.
-# This keeps the implementation aligned with the task requirement while the
-# final published table is created from explicitly derived incidence values.
+# The QC table is written to HTML so reviewers can compare against the
+# explicitly derived incidence table if needed. This QC table is based on
+# gtsummary's built-in cross-tab percentages, while the main table uses
+# explicit ADSL-based denominators for regulatory-style incidence reporting.
 qc_tbl <- teae %>%
   distinct(USUBJID, ACTARM, AETERM) %>%
   tbl_cross(row = AETERM, col = ACTARM, percent = "column")
+
+gtsave(as_gt(qc_tbl), filename = file.path(output_dir, "ae_summary_table_qc_gtsummary.html"))
 
 # Render explicitly derived TEAE table to HTML as requested output format
 summary_gt <- final_table_data %>%
@@ -110,7 +114,7 @@ summary_gt <- final_table_data %>%
 summary_gt <- summary_gt %>%
   cols_align(
     align = "center",
-    columns = all_of(names(final_table_data)[-1])
+    columns = all_of(setdiff(names(final_table_data), "AETERM"))
   )
 
 gtsave(summary_gt, filename = file.path(output_dir, "ae_summary_table.html"))

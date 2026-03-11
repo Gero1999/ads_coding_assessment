@@ -57,8 +57,8 @@ Create a summary table of treatment-emergent adverse events (TEAEs).
   - Draws stacked bar chart of TEAE record counts
 - **Plot 2 (top 10 AEs + 95% CI):**
   - Uses TEAE records only
-  - For each `AETERM`, numerator = unique subjects with ≥1 TEAE for that term
-  - Denominator = all unique subjects in `pharmaverseadam::adsl`
-  - Incidence rate: `p = numerator / denominator`
-  - 95% CI (Wald): `p ± 1.96 * sqrt(p*(1-p)/N)`, clipped to `[0, 1]`
-  - Selects top 10 AEs by descending numerator
+- For each `AETERM`, numerator = unique subjects with ≥1 TEAE for that term
+- Denominator = all unique subjects in `pharmaverseadam::adsl`
+- Incidence rate: `p = numerator / denominator`
+- 95% CI (Wald): `p ± 1.96 * sqrt(p*(1-p)/adsl_n)`, clipped to `[0, 1]`
+- Selects top 10 AEs by descending numerator

@@ -60,8 +60,14 @@ ggsave(
 # Plot 2: Top 10 most frequent AEs with 95% CI
 # -------------------------------
 adsl_n <- pharmaverseadam::adsl %>%
-  distinct(USUBJID) %>%
-  nrow()
+  summarise(n = n_distinct(USUBJID)) %>%
+  pull(n)
+
+if (adsl_n == 0) {
+  stop("ADSL has zero subjects; incidence rates cannot be computed.")
+}
+
+z_critical_95 <- qnorm(0.975)
 
 term_subject_counts <- teae %>%
   distinct(USUBJID, AETERM) %>%
@@ -69,8 +75,8 @@ term_subject_counts <- teae %>%
   mutate(
     incidence = n_subjects / adsl_n,
     se = sqrt((incidence * (1 - incidence)) / adsl_n),
-    ci_low = pmax(0, incidence - 1.96 * se),
-    ci_high = pmin(1, incidence + 1.96 * se)
+    ci_low = pmax(0, incidence - z_critical_95 * se),
+    ci_high = pmin(1, incidence + z_critical_95 * se)
   ) %>%
   arrange(desc(n_subjects), AETERM) %>%
   slice_head(n = 10) %>%
