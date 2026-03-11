@@ -8,11 +8,11 @@
 library(logrx)
 
 # Clear any stale log.rx session left over from a previous run
-suppressWarnings(try(logrx::log_remove(), silent = TRUE))
+suppressWarnings(try(log_remove(), silent = TRUE))
 
 logrx::axecute(
   file = "question_2_adam/create_adsl.R"
 )
 
 # Reset the log session for a clean state
-suppressWarnings(try(log_reset(), silent = TRUE))
+suppressWarnings(try(log_remove(), silent = TRUE))

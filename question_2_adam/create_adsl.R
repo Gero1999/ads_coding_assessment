@@ -81,14 +81,14 @@ adsl <- dm %>%
             # Event 2: Last complete AE onset date
             event(
                 dataset_name = "ae",
-                condition = !is.na(AESTDTC),
+                condition = !is.na(convert_dtc_to_dt(AESTDTC)),
                 set_values_to = exprs(LSTAVALDT = convert_dtc_to_dt(AESTDTC)),
                 order = exprs(AESTDTC)
             ),
             # Event 3: Last complete disposition date
             event(
                 dataset_name = "ds",
-                condition = !is.na(DSSTDTC),
+                condition = !is.na(convert_dtc_to_dt(DSSTDTC)),
                 set_values_to = exprs(LSTAVALDT = convert_dtc_to_dt(DSSTDTC)),
                 order = exprs(DSSTDTC)
             ),
