@@ -35,3 +35,30 @@ Create a summary table of treatment-emergent adverse events (TEAEs).
 | Summary table script | `question_3_tlg/01_create_ae_summary_table.R` |
 | Visualizations script | `question_3_tlg/02_create_visualizations.R` |
 | Log files (evidence of error-free run) | Text files |
+
+## Explicit Derivation Logic Implemented
+
+### TEAE definition
+- A record is treated as treatment-emergent if `TRTEMFL == "Y"` in `pharmaverseadam::adae`.
+
+### Summary table (`01_create_ae_summary_table.R`)
+- **Row variable:** `AETERM`
+- **Column variable:** `ACTARM` + Total
+- **Numerator (n):** count of unique `USUBJID` with at least one TEAE for each `AETERM` and `ACTARM`
+- **Treatment denominator:** unique `USUBJID` in `pharmaverseadam::adsl` per `ACTARM`
+- **Total denominator:** all unique `USUBJID` in `pharmaverseadam::adsl`
+- **Cell display:** `n (percent)` where `percent = 100 * n / denominator`
+- **Sorting:** descending by total TEAE subject count per `AETERM`
+
+### Visualizations (`02_create_visualizations.R`)
+- **Plot 1 (severity by treatment):**
+  - Uses TEAE records only
+  - Counts records by `ACTARM` and `AESEV`
+  - Draws stacked bar chart of TEAE record counts
+- **Plot 2 (top 10 AEs + 95% CI):**
+  - Uses TEAE records only
+  - For each `AETERM`, numerator = unique subjects with ≥1 TEAE for that term
+  - Denominator = all unique subjects in `pharmaverseadam::adsl`
+  - Incidence rate: `p = numerator / denominator`
+  - 95% CI (Wald): `p ± 1.96 * sqrt(p*(1-p)/N)`, clipped to `[0, 1]`
+  - Selects top 10 AEs by descending numerator
