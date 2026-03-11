@@ -6,6 +6,10 @@
 # ============================================================================
 
 library(logrx)
+
+# Clear any stale log.rx session left over from a previous run
+suppressWarnings(try(logrx::log_remove(), silent = TRUE))
+
 logrx::axecute(
   file = "question_2_adam/create_adsl.R"
 )
