@@ -4,6 +4,12 @@
 
 Create an ADSL (Subject Level) dataset using SDTM source data, the `{admiral}` family of packages, and tidyverse tools.
 
+## Implementation
+
+The implementation in `create_adsl.R` starts from `dm`, derives age-grouping variables, imputes treatment start time from exposure records, creates randomization flag `ITTFL`, and computes the last known alive date using extreme-event logic across VS, AE, DS, and EX. Outputs are exported as `adsl.rds` and `adsl.csv` with a run log.
+
+To run the script generating the outputs (`create_adsl`) and a log-file simply run `log_generator.R`.
+
 ## Task
 
 Develop an R program to create the ADSL using the input SDTM data, the `{admiral}` family of packages, and tidyverse tools as explained in the [Pharmaverse examples — ADSL](https://pharmaverse.github.io/admiral/cran-release/articles/adsl.html) or in `{admiral}` documentation. Adjust the logic and derive additional variables as mentioned below.

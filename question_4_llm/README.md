@@ -4,7 +4,11 @@
 
 Develop a Generative AI Assistant that translates natural language questions into structured Pandas queries. The goal is to test your ability to use LLMs (e.g., OpenAI via LangChain) to dynamically map user intent to the correct dataset variable without hard-coding rules.
 
-## Scenario
+## Implementation
+
+The implementation in `llm_agent.py` defines AE schema context, prompts an LLM to return structured JSON (`target_column`, `filter_value`), parses and validates that response, then executes a Pandas filter on AE data and reports matching unique `USUBJID` values. `test_script.py` demonstrates the full prompt → parse → execute flow with sample queries.
+
+## Task
 
 A clinical safety reviewer wants to ask free-text questions about the AE dataset. They don't know the column names. Your Agent must "understand" the dataset schema and route the question to the correct variable. For example:
 
