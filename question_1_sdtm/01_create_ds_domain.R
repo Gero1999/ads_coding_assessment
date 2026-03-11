@@ -152,7 +152,7 @@ ds <- assign_ct(
     # DSSEQ: Sequence number within each subject
     derive_seq(
         tgt_var = "DSSEQ",
-        rec_vars = c("STUDYID", "USUBJID", "DSDECOD", "DSSTDTC"),
+        rec_vars = c("STUDYID", "USUBJID", "DSDECOD", "DSSTDTC")
     )
 
 # ── DSSTDY: Study day relative to Baseline reference date ────────────────
