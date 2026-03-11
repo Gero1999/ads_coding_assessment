@@ -1,122 +1,42 @@
-#!/usr/bin/env Rscript
+# ============================================================================
+# PROGRAM:    01_create_ae_summary_table.R
+# PURPOSE:    Produce a hierarchical TEAE summary table (FDA Table 10 style)
+# INPUT:      pharmaverseadam::{adsl, adae}
+# OUTPUT:     question_3_tlg/teaes.html
+# PACKAGES:   dplyr, pharmaverseadam, gtsummary, gt
+# NOTES:      - Rows: AESOC > AETERM (hierarchical)
+#             - Columns: Treatment arm (ACTARM)
+#             - Cells: n (%) with overall row; sorted by descending frequency
+#             - Only treatment-emergent AEs (TRTEMFL == "Y")
+# ============================================================================
 
-suppressPackageStartupMessages({
-  library(dplyr)
-  library(tidyr)
-  library(glue)
-  library(gtsummary)
-  library(gt)
-  library(pharmaverseadam)
-})
+# ── Load libraries & data ──────────────────────────────────────────────
+library(dplyr)
+library(pharmaverseadam)
+library(gtsummary)
+library(gt)
 
-# -------------------------------
-# Objective
-# -------------------------------
-# Create a treatment-emergent adverse event (TEAE) summary table where:
-#   1) Rows are AE preferred terms (AETERM)
-#   2) Columns are treatment groups (ACTARM) plus total
-#   3) Cell values are "n (p%)" based on unique-subject incidence
-#
-# Explicit derivation logic used in this script:
-#   - TEAE records are defined as ADAE records where TRTEMFL == "Y"
-#   - Numerator for each cell: number of unique USUBJID with >=1 TEAE for
-#     the given AETERM in that treatment group
-#   - Denominator for each treatment column: number of unique USUBJID in ADSL
-#     for that treatment group (all randomized/treated subjects in ADSL)
-#   - Denominator for total column: total unique USUBJID in ADSL
-#   - Sorting: descending by overall TEAE subject count across all treatments
+adsl <- pharmaverseadam::adsl   # Subject-level (denominator)
+adae <- pharmaverseadam::adae   # AE-level analysis dataset
 
-output_dir <- "question_3_tlg/output"
-dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+# ── Filter to TEAEs & build hierarchical table ───────────────────────
+tbl <- adae |>
+  filter(
+    # Include only treatment-emergent AEs
+    TRTEMFL == "Y"
+  ) |>
+tbl_hierarchical(
+    variables = c(AESOC, AETERM),
+    by = ACTARM,
+    # Include total column with all subjects in the denominator for percentage calculations
+    id = USUBJID,
+    denominator = adsl,
+    overall_row = TRUE,
+    label = "..ard_hierarchical_overall.." ~ "Treatment Emergent AEs"
+) |>
+   # Sort rows by descending frequency (default)
+    sort_hierarchical()
 
-adsl <- pharmaverseadam::adsl %>%
-  select(USUBJID, ACTARM) %>%
-  distinct() %>%
-  filter(!is.na(ACTARM))
-
-# TEAE source records from ADAE
-teae <- pharmaverseadam::adae %>%
-  filter(TRTEMFL == "Y") %>%
-  select(USUBJID, ACTARM, AETERM) %>%
-  filter(!is.na(ACTARM), !is.na(AETERM)) %>%
-  distinct()
-
-# Per-treatment and overall denominators from ADSL
-trt_denoms <- adsl %>%
-  count(ACTARM, name = "denom")
-
-overall_denom <- n_distinct(adsl$USUBJID)
-
-# Numerator per AETERM x ACTARM (unique subjects with >=1 TEAE)
-term_trt_counts <- teae %>%
-  count(AETERM, ACTARM, name = "n")
-
-# Overall numerator per AETERM
-term_overall_counts <- teae %>%
-  count(AETERM, name = "n_total")
-
-# Sort terms by descending overall frequency
-sorted_terms <- term_overall_counts %>%
-  arrange(desc(n_total), AETERM) %>%
-  pull(AETERM)
-
-# Create complete table shell so zero cells are explicit
-term_trt_complete <- tidyr::expand_grid(
-  AETERM = sorted_terms,
-  ACTARM = unique(trt_denoms$ACTARM)
-) %>%
-  left_join(term_trt_counts, by = c("AETERM", "ACTARM")) %>%
-  mutate(n = replace_na(n, 0L)) %>%
-  left_join(trt_denoms, by = "ACTARM") %>%
-  mutate(
-    pct = if_else(denom > 0, 100 * n / denom, 0),
-    value = glue("{n} ({sprintf('%.1f', pct)}%)")
-  )
-
-# Wide treatment columns
-table_wide <- term_trt_complete %>%
-  select(AETERM, ACTARM, value) %>%
-  tidyr::pivot_wider(names_from = ACTARM, values_from = value)
-
-# Add total column using overall denominator
-overall_column <- term_overall_counts %>%
-  mutate(
-    pct_total = if_else(overall_denom > 0, 100 * n_total / overall_denom, 0),
-    Total = glue("{n_total} ({sprintf('%.1f', pct_total)}%)")
-  ) %>%
-  select(AETERM, Total)
-
-final_table_data <- table_wide %>%
-  left_join(overall_column, by = "AETERM") %>%
-  mutate(AETERM = factor(AETERM, levels = sorted_terms)) %>%
-  arrange(AETERM) %>%
-  mutate(AETERM = as.character(AETERM))
-
-# Use gtsummary to create a QC/traceability table from TEAE records.
-# The QC table is written to HTML so reviewers can compare against the
-# explicitly derived incidence table if needed. This QC table is based on
-# gtsummary's built-in cross-tab percentages, while the main table uses
-# explicit ADSL-based denominators for regulatory-style incidence reporting.
-qc_tbl <- teae %>%
-  distinct(USUBJID, ACTARM, AETERM) %>%
-  tbl_cross(row = AETERM, col = ACTARM, percent = "column")
-
-gtsave(as_gt(qc_tbl), filename = file.path(output_dir, "ae_summary_table_qc_gtsummary.html"))
-
-# Render explicitly derived TEAE table to HTML as requested output format
-summary_gt <- final_table_data %>%
-  gt(rowname_col = "AETERM") %>%
-  tab_header(
-    title = md("**Treatment-Emergent Adverse Events by Preferred Term**"),
-    subtitle = md("Cell format: n (percentage), where percentage denominator is ADSL treatment N")
-  )
-
-summary_gt <- summary_gt %>%
-  cols_align(
-    align = "center",
-    columns = all_of(setdiff(names(final_table_data), "AETERM"))
-  )
-
-gtsave(summary_gt, filename = file.path(output_dir, "ae_summary_table.html"))
-
-message("AE summary table created successfully: ", file.path(output_dir, "ae_summary_table.html"))
+# ── Export as HTML ──────────────────────────────────────────────────────
+gtsummary::as_gt(tbl) |>
+    gt::gtsave(filename = "question_3_tlg/teaes.html")

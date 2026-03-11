@@ -1,107 +1,83 @@
-#!/usr/bin/env Rscript
+# ============================================================================
+# PROGRAM:    02_create_visualizations.R
+# PURPOSE:    Create two AE visualisations using ggplot2
+#               Plot 1 – AE severity distribution by treatment arm (bar chart)
+#               Plot 2 – Top 10 most frequent AEs with 95% Clopper-Pearson CIs
+# INPUT:      pharmaverseadam::adae
+# OUTPUT:     question_3_tlg/plot1.png, question_3_tlg/plot2.png
+# PACKAGES:   ggplot2, dplyr (implicitly via pipe)
+# ============================================================================
 
-suppressPackageStartupMessages({
-  library(dplyr)
-  library(ggplot2)
-  library(forcats)
-  library(pharmaverseadam)
-})
+adae <- pharmaverseadam::adae
 
-# -------------------------------
-# Objective
-# -------------------------------
-# Create two AE visualizations:
-#   Plot 1: AE severity distribution by treatment
-#   Plot 2: Top 10 most frequent AEs with 95% CI for incidence rates
-#
-# Explicit derivation logic used in this script:
-#   - TEAE records are defined as ADAE records where TRTEMFL == "Y"
-#   - Plot 1 counts AE records by ACTARM x AESEV (record-based distribution)
-#   - Plot 2 computes subject-level incidence by AETERM:
-#       numerator   = unique subjects with >=1 TEAE for that term
-#       denominator = unique subjects in ADSL overall
-#       incidence   = numerator / denominator
-#       95% CI      = Wald CI: p ± 1.96 * sqrt(p * (1-p) / N), clipped to [0, 1]
+# ── Plot 1: AE severity by treatment arm (grouped bar chart) ──────────────
+library(ggplot2)
 
-output_dir <- "question_3_tlg/output"
-dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+p1 <- ggplot2::ggplot(
+    adae,
+    aes(x = ACTARM, fill = AESEV)
+    ) +
+    geom_bar(position = "dodge") +
+    labs(
+        title = "AE severity distribution by treatment",
+        x = "Treatment Arm",
+        y = "Count of AEs",
+        fill = "Severity/Intensity"
+    )
 
-teae <- pharmaverseadam::adae %>%
-  filter(TRTEMFL == "Y") %>%
-  select(USUBJID, ACTARM, AESEV, AETERM) %>%
-  filter(!is.na(ACTARM), !is.na(AESEV), !is.na(AETERM))
-
-# -------------------------------
-# Plot 1: AE severity distribution by treatment
-# -------------------------------
-severity_plot_data <- teae %>%
-  count(ACTARM, AESEV, name = "n_records")
-
-p1 <- ggplot(severity_plot_data, aes(x = ACTARM, y = n_records, fill = AESEV)) +
-  geom_col(position = "stack") +
-  labs(
-    title = "TEAE Severity Distribution by Treatment",
-    x = "Treatment Arm (ACTARM)",
-    y = "Number of TEAE Records",
-    fill = "AE Severity"
-  ) +
-  theme_minimal(base_size = 12) +
-  theme(axis.text.x = element_text(angle = 15, hjust = 1))
-
-ggsave(
-  filename = file.path(output_dir, "plot1_ae_severity_by_treatment.png"),
-  plot = p1,
-  width = 10,
-  height = 6,
-  dpi = 300
+ggplot2::ggsave(
+    filename = "question_3_tlg/plot1.png",
+    plot = p1,
+    width = 8,
+    height = 6
 )
 
-# -------------------------------
-# Plot 2: Top 10 most frequent AEs with 95% CI
-# -------------------------------
-adsl_n <- pharmaverseadam::adsl %>%
-  summarise(n = n_distinct(USUBJID)) %>%
-  pull(n)
+# ── Plot 2: Top 10 AEs with 95% Clopper-Pearson CIs ───────────────────
+n_total <- n_distinct(adae$USUBJID)
 
-if (adsl_n == 0) {
-  stop("ADSL has zero subjects; incidence rates cannot be computed.")
+#' Compute exact (Clopper-Pearson) binomial confidence interval
+#'
+#' @param n      Number of subjects with the event.
+#' @param n_total Total number of subjects.
+#' @param conf_level Confidence level (default 0.95).
+#' @return Numeric vector of length 2: c(lower, upper).
+get_ci_clopper_pearson <- function(n, n_total, conf_level = 0.95) {
+    binom.test(n, n_total, conf.level = 0.95)$conf.int
 }
 
-z_critical_95 <- qnorm(0.975)
-
-term_subject_counts <- teae %>%
-  distinct(USUBJID, AETERM) %>%
-  count(AETERM, name = "n_subjects") %>%
-  mutate(
-    incidence = n_subjects / adsl_n,
-    se = sqrt((incidence * (1 - incidence)) / adsl_n),
-    ci_low = pmax(0, incidence - z_critical_95 * se),
-    ci_high = pmin(1, incidence + z_critical_95 * se)
-  ) %>%
-  arrange(desc(n_subjects), AETERM) %>%
-  slice_head(n = 10) %>%
-  mutate(AETERM = forcats::fct_reorder(AETERM, incidence))
-
-p2 <- ggplot(term_subject_counts, aes(x = AETERM, y = incidence)) +
-  geom_col(fill = "steelblue") +
-  geom_errorbar(aes(ymin = ci_low, ymax = ci_high), width = 0.2) +
-  coord_flip() +
-  scale_y_continuous(labels = function(x) paste0(round(x * 100, 1), "%")) +
-  labs(
-    title = "Top 10 TEAE Preferred Terms by Subject Incidence",
-    x = "AETERM",
-    y = "Incidence Rate (95% CI)"
-  ) +
-  theme_minimal(base_size = 12)
-
-ggsave(
-  filename = file.path(output_dir, "plot2_top10_aeterm_incidence_ci.png"),
-  plot = p2,
-  width = 10,
-  height = 6,
-  dpi = 300
+p2 <- adae |>
+    group_by(AETERM) |>
+    summarise(
+        n_pat = n_distinct(USUBJID),
+        pct = 100 * n_pat/n_total,
+        ci_lower = 100 * get_ci_clopper_pearson(n_pat, n_total)[1],
+        ci_upper = 100 * get_ci_clopper_pearson(n_pat, n_total)[2],
+        .groups = "drop"
+    ) |>
+    arrange(desc(pct)) |>
+    slice_head(n = 10) |>
+    ggplot(aes(x = pct, y = reorder(AETERM, pct))) +
+    geom_point(size = 3) +
+    geom_errorbarh(
+        aes(xmin = ci_lower, xmax = ci_upper),
+        height = 0.2
+    ) +
+    labs(
+        title = "Top 10 Most Frequent Adverse Events",
+        subtitle = paste0(
+            "n = ", first(n_total), "; 95% Clopper-Pearson CIs"
+        ),
+        x = "Percentage of Patients (%)",
+        y = ""
+    ) +
+    theme(
+        plot.title = element_text(size = 18),
+        plot.subtitle = element_text(size = 14),
+        axis.text.y = element_text(size = 12),
+        axis.title.x = element_text(size = 13),
+        axis.text.x = element_text(size = 11)
+    )
+ggplot2::ggsave(
+    filename = "question_3_tlg/plot2.png",
+    plot = p2
 )
-
-message("Visualizations created successfully:")
-message(" - ", file.path(output_dir, "plot1_ae_severity_by_treatment.png"))
-message(" - ", file.path(output_dir, "plot2_top10_aeterm_incidence_ci.png"))
