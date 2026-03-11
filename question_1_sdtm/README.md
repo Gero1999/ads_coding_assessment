@@ -4,13 +4,7 @@
 
 Create an SDTM Disposition (DS) domain dataset from raw clinical trial data using `{sdtm.oak}`.
 
-## Summary of Content
-
-### 1) Task
-
-Develop an R program to derive an SDTM DS domain from `pharmaverseraw::ds_raw`, applying controlled terminology and producing a compliant DS output dataset.
-
-### 2) Implementation Description
+## Implementation
 
 The solution in `01_create_ds_domain.R` uses `{sdtm.oak}` to map controlled terminology, derive required SDTM variables (`DSTERM`, `DSDECOD`, `DSCAT`, `DSDTC`, `DSSTDTC`, etc.), generate sequence and study-day variables, and export final outputs as `ds.rds` and `ds.csv` with an execution log as run evidence.
 
