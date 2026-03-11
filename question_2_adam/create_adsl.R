@@ -39,18 +39,18 @@ adsl <- dm %>%
     mutate(
         AGEGR9 = case_when(
             AGE < 18 ~ "<18",
-            AGE >= 18 & AGE <= 50 ~ "18-50",
+            AGE >= 18 & AGE <= 50 ~ "18 - 50",
             AGE > 50 ~ ">50",
             TRUE ~ NA_character_
         ),
         AGEGR9N = as.numeric(
-            factor(AGEGR9, levels = c("<18", "18-50", ">50"))
+            factor(AGEGR9, levels = c("<18", "18 - 50", ">50"))
         )
     ) %>%
     # TRTSDTM / TRTSTMF: Treatment start datetime from first valid EX dose
     derive_vars_merged(
         dataset_add = ex_ext,
-        filter_add = EXDOSE > 0 | (EXDOSE == 0 & grepl("PLACEBO", toupper(EXTRT))),
+        filter_add = EXDOSE > 0 | (EXDOSE == 0 & grepl("PLACEBO", toupper(EXTRT))) & !is.na(EXSTDTM),
         new_vars = exprs(
             TRTSDTM = EXSTDTM,
             TRTSTMF = EXSTTMF
@@ -74,7 +74,7 @@ adsl <- dm %>%
             # Event 1: Last complete vital assessment with valid test result
             event(
                 dataset_name = "vs",
-                condition = !is.na(VSSTRESN) | !is.na(VSSTRESC) & !is.na(VSDTC),
+                condition = !is.na(VSSTRESN) & !is.na(VSSTRESC) & !is.na(VSDTC),
                 set_values_to = exprs(LSTAVALDT = convert_dtc_to_dt(VSDTC)),
                 order = exprs(VSDTC)
             ),
