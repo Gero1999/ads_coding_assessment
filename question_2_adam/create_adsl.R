@@ -8,8 +8,6 @@ suppressPackageStartupMessages({
   library(pharmaversesdtm)
 })
 
-`%||%` <- function(x, y) if (is.null(x)) y else x
-
 is_complete_datepart <- function(dtc) {
   !is.na(dtc) & str_detect(dtc, "^\\d{4}-\\d{2}-\\d{2}")
 }
@@ -72,7 +70,7 @@ parse_imputed_dtm <- function(dtc) {
   )
 
   parsed_dtm <- ymd_hms(
-    paste(out$date_part, out$hour, out$minute, out$second, sep = " "),
+    paste0(out$date_part, "T", out$hour, ":", out$minute, ":", out$second),
     tz = "UTC",
     quiet = TRUE
   )
@@ -88,7 +86,7 @@ derive_adsl <- function(dm, ex, vs, ds, ae) {
     mutate(
       AGEGR9N = case_when(
         !is.na(AGE) & AGE < 18 ~ 1,
-        !is.na(AGE) & AGE <= 50 ~ 2,
+        !is.na(AGE) & AGE >= 18 & AGE <= 50 ~ 2,
         !is.na(AGE) & AGE > 50 ~ 3,
         TRUE ~ NA_real_
       ),
@@ -105,7 +103,7 @@ derive_adsl <- function(dm, ex, vs, ds, ae) {
     mutate(
       EXDOSE_NUM = suppressWarnings(as.numeric(EXDOSE)),
       valid_dose = (!is.na(EXDOSE_NUM) & EXDOSE_NUM > 0) |
-        (!is.na(EXDOSE_NUM) & EXDOSE_NUM == 0 & str_detect(str_to_upper(EXTRT %||% ""), "PLACEBO"))
+        (!is.na(EXDOSE_NUM) & EXDOSE_NUM == 0 & str_detect(str_to_upper(coalesce(EXTRT, "")), "PLACEBO"))
     ) %>%
     filter(valid_dose, is_complete_datepart(EXSTDTC)) %>%
     bind_cols(parse_imputed_dtm(.$EXSTDTC)) %>%
@@ -142,8 +140,10 @@ derive_adsl <- function(dm, ex, vs, ds, ae) {
 
   last_alive <- bind_rows(vs_last, ae_last, ds_last, ex_last) %>%
     group_by(USUBJID) %>%
-    summarise(LASTVLDT = suppressWarnings(max(src_date, na.rm = TRUE)), .groups = "drop") %>%
-    mutate(LASTVLDT = if_else(is.infinite(as.numeric(LASTVLDT)), as.Date(NA), LASTVLDT))
+    summarise(
+      LASTVLDT = if (all(is.na(src_date))) as.Date(NA) else max(src_date, na.rm = TRUE),
+      .groups = "drop"
+    )
 
   adsl %>%
     left_join(trts, by = "USUBJID") %>%
@@ -155,8 +155,9 @@ run <- function() {
   script_path <- file_arg[str_detect(file_arg, "^--file=")] %>%
     str_remove("^--file=") %>%
     .[1]
+  script_path <- if (length(script_path) == 0 || is.na(script_path)) "" else script_path
   script_dir <- dirname(normalizePath(script_path, mustWork = FALSE))
-  if (is.na(script_dir) || script_dir == "." || script_dir == "") {
+  if (identical(script_dir, ".") || identical(script_dir, "") || is.na(script_dir)) {
     script_dir <- getwd()
   }
 
