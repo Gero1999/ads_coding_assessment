@@ -22,13 +22,6 @@ ex <- pharmaversesdtm::ex   # Exposure
 ds <- pharmaversesdtm::ds   # Disposition
 ae <- pharmaversesdtm::ae   # Adverse Events
 
-# ── Initialise admiral log ─────────────────────────────────────────────
-log_init()
-log_config(
-  "create_adsl.R",
-  log_path = "question_2_adam"
-)
-
 # ── EX: Impute missing time for treatment start datetime ─────────────────
 ex_ext <- ex %>%
     # Impute missing time, but don't flag imputed seconds
