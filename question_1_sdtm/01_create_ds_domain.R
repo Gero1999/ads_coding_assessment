@@ -2,7 +2,7 @@
 # PROGRAM:    01_create_ds_domain.R
 # PURPOSE:    Derive an SDTM-compliant DS (Disposition) domain from raw data
 # INPUT:      pharmaverseraw::ds_raw, question_1_sdtm/sdtm_ct.csv
-# OUTPUT:     question_1_sdtm/ds_domain.csv, ds.json, ds.rds
+# OUTPUT:     question_1_sdtm/ds_domain.csv, ds.rds
 # PACKAGES:   pharmaverseraw, sdtm.oak, dplyr, stringr, stringdist, readr
 # NOTES:      - DSSTDTC derived from IT.DSSTDAT at Baseline visit
 #             - Subjects without Baseline records get DSSTDTC = NA
