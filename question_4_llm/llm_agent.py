@@ -7,13 +7,14 @@ Llama 3.2-1B model — no API key required.
 Pipeline:  User Question  →  LLM Prompt  →  Structured JSON  →  Pandas Filter
 
 Usage:
-    python question_4_llm/llm_agent.py          # runs 3 demo queries
+    python question_4_llm/test_script.py        # runs 3 demo queries
     # or import and use interactively:
-    from llm_agent import ClinicalTrialDataAgent
+    from llm_agent import ClinicalTrialDataAgent, load_ae
+    ae = load_ae()
     agent = ClinicalTrialDataAgent(ae)
     result = agent.ask("subjects with moderate severity")
 
-Input:  pharmaversesdtm AE CSV (downloaded at runtime).
+Input:  pharmaversesdtm AE CSV (local file preferred, downloaded on first use).
 Output: For each query — count of unique subjects + list of USUBJIDs.
 """
 
@@ -21,14 +22,34 @@ import pandas as pd
 import json
 import requests
 import re
-from typing import Dict, List, Optional
+from pathlib import Path
+from typing import Dict
 
 # ============================================================================
 # 1. LOAD DATA
 # ============================================================================
-url = "https://raw.githubusercontent.com/pharmaverse/pharmaversesdtm/refs/heads/main/inst/extdata/ae.csv"
-ae = pd.read_csv(url)
-ae.to_csv("question_4_llm/ae.csv", index=False)
+AE_SOURCE_URL = "https://raw.githubusercontent.com/pharmaverse/pharmaversesdtm/refs/heads/main/inst/extdata/ae.csv"
+AE_LOCAL_PATH = Path(__file__).resolve().parent / "ae.csv"
+
+
+def load_ae(
+    path: Path = AE_LOCAL_PATH, url: str = AE_SOURCE_URL
+) -> pd.DataFrame:
+    """Load the AE dataset, preferring an existing local CSV.
+
+    If the local file does not exist, download it from the given URL,
+    save it to *path*, and then load it.
+    """
+    if path.is_file():
+        return pd.read_csv(path)
+
+    resp = requests.get(url, timeout=60)
+    resp.raise_for_status()
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(resp.content)
+
+    return pd.read_csv(path)
 
 # ============================================================================
 # 2. SCHEMA DEFINITION
@@ -91,6 +112,14 @@ def call_ollama(prompt: str, temperature: float = 0.0) -> str:
         raise RuntimeError(
             "Ollama is not running. Start it with: ollama serve"
         )
+    except requests.exceptions.RequestException as exc:
+        raise RuntimeError(
+            f"Ollama request failed: {exc}"
+        ) from exc
+    except (ValueError, KeyError) as exc:
+        raise RuntimeError(
+            f"Unexpected Ollama response: {exc}"
+        ) from exc
 
 
 # ============================================================================
@@ -156,10 +185,10 @@ Q: "subjects with moderate severity"
 A: {{"target_column": "AESEV", "filter_value": "MODERATE"}}
 
 Q: "patients who had headache"
-A: {{"target_column": "AEDECOD", "filter_value": "HEADACHE"}}
+A: {{"target_column": "AETERM", "filter_value": "HEADACHE"}}
 
 Q: "adverse events in the cardiac body system"
-A: {{"target_column": "AEBODSYS", "filter_value": "CARDIAC DISORDERS"}}
+A: {{"target_column": "AESOC", "filter_value": "CARDIAC DISORDERS"}}
 
 Q: "serious adverse events"
 A: {{"target_column": "AESER", "filter_value": "Y"}}
@@ -175,8 +204,8 @@ RULES:
 - target_column must be one of: {list(AE_SCHEMA.keys())}
 - filter_value must be UPPER CASE.
 - severity/intensity → AESEV (values: MILD, MODERATE, SEVERE)
-- specific condition → AEDECOD
-- body system/organ class → AEBODSYS
+- specific condition → AETERM
+- body system/organ class → AESOC
 - seriousness → AESER (Y or N)
 - relationship/causality → AEREL
 - outcome → AEOUT
@@ -288,8 +317,14 @@ A:"""
                 "subject_ids": [],
             }
 
-        # Case-insensitive partial match for text columns
-        mask = self.df[col].astype(str).str.upper().str.contains(val, na=False)
+        # Case-insensitive partial match for text columns; use nullable string
+        # dtype to avoid NaN → "nan" false positives
+        mask = (
+            self.df[col]
+            .astype("string")
+            .str.upper()
+            .str.contains(val, na=False)
+        )
         filtered = self.df.loc[mask]
 
         unique_subjects = sorted(filtered["USUBJID"].unique().tolist())
@@ -324,30 +359,10 @@ A:"""
 
 
 # ============================================================================
-# 5. TEST SCRIPT – Three example queries
+# 5. DEMO (run via test_script.py for the full test suite)
 # ============================================================================
 if __name__ == "__main__":
-    # Instantiate the agent with the loaded AE data
+    ae = load_ae()
     agent = ClinicalTrialDataAgent(ae)
-
-    # --- Query 1: Severity ---
-    q1 = "Give me the subjects who had adverse events of Moderate severity"
-    r1 = agent.ask(q1)
-
-    # --- Query 2: Specific condition ---
-    q2 = "Which patients experienced Headache?"
-    r2 = agent.ask(q2)
-
-    # --- Query 3: Body system ---
-    q3 = "Show me subjects with adverse events in the Cardiac body system"
-    r3 = agent.ask(q3)
-
-    # Summary
-    print("\n" + "=" * 70)
-    print("  SUMMARY")
-    print("=" * 70)
-    for label, res in [("Moderate severity", r1),
-                       ("Headache", r2),
-                       ("Cardiac disorders", r3)]:
-        print(f"  {label:25s} → {res['subject_count']} subjects")
-    print("=" * 70)
+    result = agent.ask("Give me the subjects who had adverse events of Moderate severity")
+    print(result)
