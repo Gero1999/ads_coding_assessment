@@ -110,7 +110,7 @@ ds <- assign_ct(
         raw_dat = ds_raw,
         raw_var = c("DSDTCOL", "DSTMCOL"),
         tgt_var = "DSDTC",
-        raw_fmt = c(list(c("dd-mm-yyyy")), "H:M")
+        raw_fmt = c(list(c("mm-dd-yyyy")), "H:M")
     ) %>%
 
     # DSSTDTC: Disposition start date from IT.DSSTDAT → ISO 8601

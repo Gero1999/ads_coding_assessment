@@ -8,10 +8,10 @@ logrx link to repository: https://github.com/pharmaverse/logrx
 --------------------------------------------------------------------------------
 -                          User and File Information                           -
 --------------------------------------------------------------------------------
-User: gerardo
+User: 
 File Name: 01_create_ds_domain.R
-File Path: /home/gerardo/Desktop/ads_coding_assessment/question_1_sdtm
-File HashSum: cda21c525407e8f18298ffa37b534db2c6234d1f
+File Path: /home//Desktop/ads_coding_assessment/question_1_sdtm
+File HashSum: c9b5b95597c9329abb3d369bf224095e63e5f0bd
 --------------------------------------------------------------------------------
 -                             Session Information                              -
 --------------------------------------------------------------------------------
@@ -70,13 +70,14 @@ File HashSum: cda21c525407e8f18298ffa37b534db2c6234d1f
  tidyselect        1.2.1   2024-03-11 [1] CRAN (R 4.5.2)
  timechange        0.4.0   2026-01-29 [1] CRAN (R 4.5.2)
  tzdb              0.5.0   2025-03-15 [1] CRAN (R 4.5.2)
+ utf8              1.2.6   2025-06-08 [1] CRAN (R 4.5.2)
  vctrs             0.7.1   2026-01-23 [1] CRAN (R 4.5.2)
  vroom             1.7.0   2026-01-27 [1] CRAN (R 4.5.2)
  withr             3.0.2   2024-10-28 [1] CRAN (R 4.5.2)
  xfun              0.56    2026-01-18 [1] CRAN (R 4.5.2)
  xml2              1.5.2   2026-01-17 [1] CRAN (R 4.5.2)
 
- [1] /home/gerardo/R/x86_64-pc-linux-gnu-library/4.5
+ [1] /home//R/x86_64-pc-linux-gnu-library/4.5
  [2] /usr/local/lib/R/site-library
  [3] /usr/lib/R/site-library
  [4] /usr/lib/R/library
@@ -112,6 +113,9 @@ File HashSum: cda21c525407e8f18298ffa37b534db2c6234d1f
 --------------------------------------------------------------------------------
 -                               Masked Functions                               -
 --------------------------------------------------------------------------------
+function `oak_id_vars` from {package:sdtm.oak} by .GlobalEnv
+function `ds_raw` from {package:pharmaverseraw} by .GlobalEnv
+function `ds` from {package:pharmaversesdtm} by .GlobalEnv
 function `problems` from {package:readr} by package:sdtm.oak
 function `%>%` from {package:admiral} by package:dplyr
 function `desc` from {package:admiral} by package:dplyr
@@ -139,9 +143,9 @@ function `kronecker` from {package:base} by package:methods
 --------------------------------------------------------------------------------
 -                         Program Run Time Information                         -
 --------------------------------------------------------------------------------
-Start time: 2026-03-11 18:57:54 CET
-End time: 2026-03-11 18:57:56 CET
-Run time: 2 seconds
+Start time: 2026-03-11 19:05:09 CET
+End time: 2026-03-11 19:05:10 CET
+Run time: 1 seconds
 --------------------------------------------------------------------------------
 -                             Errors and Warnings                              -
 --------------------------------------------------------------------------------
@@ -170,4 +174,4 @@ Result:
 -                               Log Output File                                -
 --------------------------------------------------------------------------------
 Log name: 01_create_ds_domain.log
-Log path: /home/gerardo/Desktop/ads_coding_assessment/question_1_sdtm
+Log path: /home//Desktop/ads_coding_assessment/question_1_sdtm
